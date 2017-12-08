@@ -10,6 +10,7 @@ import dod.Product;
 import dod.service.FederatorService;
 import dod.service.OfferTags;
 import dod.service.PricingService;
+import dod.service.RatingService;
 import dod.service.ZuluService;
 import io.dropwizard.hibernate.UnitOfWork;
 import io.dropwizard.jersey.params.LongParam;
@@ -41,6 +42,11 @@ import java.util.stream.Collectors;
 public class ApplicationResource {
 
     private final Provider<PricingService> pricingServiceProvider;
+    private final RatingService ratingService;
+    private ZuluService zuluService;
+    private FederatorService federatorService;
+
+    private ObjectMapper objectMapper;
 
     private ZuluService zuluService;
     private FederatorService federatorService;
@@ -54,6 +60,7 @@ public class ApplicationResource {
         this.federatorService = federatorService;
         this.objectMapper = objectMapper;
         this.pricingServiceProvider = pricingServiceProvider;
+        this.ratingService = ratingService;
         this.offerTagsProvider = offerTagsProvider;
     }
 
@@ -83,6 +90,15 @@ public class ApplicationResource {
 
 
 
+
+        Map<String, String> ratingsTagRes = ratingService.getRatingTags(map.keySet().stream().collect(Collectors.toList()));
+        for(String pId : ratingsTagRes.keySet()){
+            Product product = map.get(pId);
+            String tag = ratingsTagRes.get(pId);
+            List<String> existingTag = product.getTags();
+            existingTag.add(tag);
+            product.setTags(existingTag);
+        }
         return objectMapper.writeValueAsString(map);
     }
     @GET
@@ -101,7 +117,6 @@ public class ApplicationResource {
         actuals.addAll(listingId.stream().filter(s -> s != null && !s.isEmpty()).collect(Collectors.toList()));
         return pricingServiceProvider.get().getTagsForListings(actuals);
     }
-
     @GET
     @Path("/time/tags")
     public Map<String, String> getTimeTagsForProduct(List<String> listingId){
